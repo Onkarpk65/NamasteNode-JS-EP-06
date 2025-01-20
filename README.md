@@ -75,4 +75,73 @@
 - **Execution of `return result;`:** The function return `20,00,000`, and the `multiplyFn` execution context is popped off the call stack.
 6. **Resuming Global Execution Context**
 - In Global Execution Context, the returned value from `multiplyFn (20,00,000)` is assigned to the variable `c`.
-7. **Now Once the entire code is executed, the global execution context is also popped out, and the call stack becomes empty.**
+7. **Now, Once the entire code is executed, the global execution context is also popped out, and the call stack becomes empty.**
+
+## How Asynchronous code is executed?
+
+```javascript
+    let a = 1000;
+let b = 2000;
+
+https.get("https://api,fbi.com", (res) => {
+    console.log(res?.secret);
+})
+
+setTimeout(() => {
+    console.log("setTimer expired");
+}, 5000);
+
+fs.readFile("./gossip.txt", "utf8", (data) => {
+    console.log("file data", data);
+});
+
+function multiplyFn(x, y) {
+    const result = a * b;
+    return result;
+}
+
+let c = multiplyFn(a, b);
+
+console.log(c);
+```
+
+
+
+- The JavaScript engine cannot do this alone, it needs superpowers. This where Node.js comes into the picture, giving it the ability to interact with operating system functionalites.
+
+> The JS engine cannot directly access OS files, so it calls on Libuv. Libuv, being very cool and full of superpowers, communicates with the OS, perfoms all the necessary tasks, and returns the response to the JS engine. 
+
+
+- The variables `let a` and `let b` are executed within the GEC (Global Execution Context) during the synchrhronous phase of the code execution process. 
+- However, whe the code encounters an API call, the V8 engine, while still operating within the GEC, recognizes that it is dealing with an asychronous operation. At this point, the V8 engine signals `libuv` to handle this API call.
+- What happens next is that `libuv` registers the API call, including its associated callback function (API - A), within its event loop, allowing the V8 engine to continue executing the rest of the code without waiting for the API call to complete.
+- Next, when the code encounters a `setTimeout` function, (setTimeout - B) a similar process occurs.
+- The V8 engine identifies this as another asynchronous operation and once agin notifies `libuv`.
+- Following this when the code reaches a file operation (like reading or writing a file), the process is similar. (fs - C)
+- The V8 engine recognizes this as another asynchronous task and alerts `libuv`.
+- `libuv` then registers the file operation and its callback in the event loop.
+- next, when the code executes `let c = multiplyFn(a, b);`, the JavaScript engine creates a new function context for `multiplyFn` and pushes it onto the call stack.
+- The function takes two parameters, `x` and `y`, and within this function, the engine multiplies these values (`a * b`) and stores the result in the `result` variable.
+- The JavaScript engine handles this operation as part of the **synchronous code execution**
+- Once the `multiplyFn` completes its execution and returns the result, the function context is popped off the call stack, and the result is assigned to the variable `c` 
+
+# imp concept :
+  > - **When the function execution context is popped off the call stack, the garbage collector may clear any memory allocated for that context in the memory heap, if it is no longer needed.**
+  > - **After `console.log(c)` is executed and the value of `c` is printed to the console, the Global Execution Context is will also eventually be removed from the call stack if the code execution is complete** 
+  > - **With the global execution context popped off the call stack, the JS engine has finished processing, and the program ends.**
+  >- **Now the call stack becomes empty, the JavaScript engine can relax, as there is no more code to execute.**
+  >- **At this point `libuv` takes over the major tasks. It handles operations such as processing timers, managing file system calls, and communicating with the operating system.**
+
+  - `libuv` performs these heavy tasks in the background, ensuring that asynchronous operations continue to be managed effectively.
+  - In summary, Node.js excels in handling asynchronously I/O operations, thanks to its non-blocking I/O model.
+
+## Components of V8 JS Engine:
+1. CallStack
+2. Memory Heap
+3. Garbage Collector
+4. Global Execution Context
+   - Memory Creation Phase
+   - Code Execution Phase
+5. Function Execution Context
+   - Memory Creation Phase
+   - Code Execution Phase 
